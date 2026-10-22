@@ -29,7 +29,9 @@ if ($Release) {
     $notes = "Install OpenLite.apk on an Android phone or tablet. On first launch it downloads the OSRS cache; its plugins come from the PC client and update by themselves. Built $(Get-Date -Format 'yyyy-MM-dd HH:mm')."
     $published = Join-Path $env:TEMP "OpenLite.apk"
     Copy-Item $apk $published -Force
-    gh release view latest -R OblongNoodle/OpenLite-Mobile *> $null
+    # gh writes "release not found" to stderr, which Stop would treat as fatal.
+    $ErrorActionPreference = "Continue"
+    gh release view latest -R OblongNoodle/OpenLite-Mobile 2>&1 | Out-Null
     if ($LASTEXITCODE) {
         gh release create latest $published -R OblongNoodle/OpenLite-Mobile --title "OpenLite Mobile" --notes $notes
     } else {
