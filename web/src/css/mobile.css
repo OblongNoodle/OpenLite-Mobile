@@ -1,0 +1,61 @@
+/* OpenLite Mobile: startup status, and the plugin panel laid over the game
+   rather than beside it (a phone has no width to spare). */
+html, body {
+    margin: 0;
+    background: #000;
+    overscroll-behavior: none;
+    touch-action: none;
+}
+
+#openlite-status {
+    position: fixed;
+    inset: auto 0 40% 0;
+    text-align: center;
+    color: #fff;
+    font: 16px sans-serif;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.highlite_bar_selected_content.activated {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 30px;
+    width: min(320px, 75vw) !important;
+    z-index: 1000;
+}
+
+#openlite-touch-buttons {
+    position: fixed;
+    left: 4px;
+    top: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 2000;
+}
+
+#openlite-touch-buttons button {
+    font: 12px sans-serif;
+    color: #fff;
+    background: rgba(20, 20, 20, 0.75);
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+#openlite-touch-buttons button.active {
+    border-color: #71d9e2;
+    color: #71d9e2;
+}
+
+#openlite-use-builtin {
+    position: fixed;
+    left: 50%;
+    top: 65%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    font: 16px sans-serif;
+    padding: 10px 16px;
+}

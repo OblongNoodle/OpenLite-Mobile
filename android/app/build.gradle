@@ -1,0 +1,38 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "dev.openlite.mobile"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "dev.openlite.mobile"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key so it installs without a keystore.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    androidResources {
+        // The web bundle is served as-is.
+        noCompress "js", "html"
+    }
+}
+
+dependencies {
+    implementation "org.apache.commons:commons-compress:1.26.2"
+}

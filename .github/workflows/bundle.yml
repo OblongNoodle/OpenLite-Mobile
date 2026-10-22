@@ -1,0 +1,79 @@
+# Builds the phone's web bundle from the PC client's plugins (OpenLite,
+# openlite branch) and publishes it on this repo's GitHub Pages site, where
+# the app looks for updates (android/.../Updater.java). Runs on pushes here,
+# when started by hand (gh workflow run bundle.yml), and every 15 minutes in
+# case the PC client changed; it skips the build when nothing has.
+name: Phone bundle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PC_REPO: OblongNoodle/OpenLite
+  PC_BRANCH: openlite
+  SITE: https://oblongnoodle.github.io/OpenLite-Mobile
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PC_REPO }}
+          ref: ${{ env.PC_BRANCH }}
+          path: pc
+          sparse-checkout: src/renderer/client/plugins
+
+      # Version: the PC client's and this repo's commits.
+      - id: version
+        run: |
+          version="$(git -C pc rev-parse --short=8 HEAD)-$(git rev-parse --short=8 HEAD)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          deployed="$(curl -fsSL "$SITE/manifest.json" | jq -r .version || true)"
+          if [ "$deployed" = "$version" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - if: steps.version.outputs.skip != 'true'
+        name: Build
+        run: |
+          node scripts/sync-plugins.mjs pc
+          cd web
+          npm ci
+          OPENLITE_OUT="$GITHUB_WORKSPACE/dist" OPENLITE_VERSION="${{ steps.version.outputs.version }}" npx vite build
+          cd ..
+          node scripts/manifest.mjs dist "${{ steps.version.outputs.version }}"
+
+      - if: steps.version.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - if: steps.version.outputs.skip != 'true'
+        id: deploy
+        uses: actions/deploy-pages@v4
