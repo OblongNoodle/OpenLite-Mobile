@@ -97,3 +97,35 @@ export function installOsrsCache() {
     files
   };
 }
+
+// First launch on a new device: the app fetches an OSRS cache
+// (CacheDownloader) while this shows how far along it is. Resolves once
+// there is a cache, or the download failed or was skipped (the game's own
+// models are used then).
+export async function ensureOsrsCache(status) {
+  if ((await fetch("/__openlite/cache/status")).ok) return;
+  // Apps from before the downloader can't fetch one.
+  if (!(await fetch("/__openlite/cache/download")).ok) return;
+  let skipped = false;
+  const skip = document.createElement("button");
+  skip.id = "openlite-skip-cache";
+  skip.textContent = "Skip (use the game's own models)";
+  skip.addEventListener("click", () => (skipped = true));
+  document.body.appendChild(skip);
+  try {
+    while (!skipped) {
+      const progress = await fetch("/__openlite/cache/progress").then((r) => r.json());
+      if (progress.state === "done") return;
+      if (progress.state === "failed") {
+        status(`OSRS cache download failed (${progress.error}). Using the game's own models.`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        return;
+      }
+      // About 250 MB in all (OpenRS2 doesn't say the unzipped size).
+      status(`First launch: downloading OSRS models and textures, ${Math.round(progress.bytes / 1048576)} of about 250 MB...`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  } finally {
+    skip.remove();
+  }
+}

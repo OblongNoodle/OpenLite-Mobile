@@ -1,4 +1,5 @@
-// Copies the PC client's plugins into web/src/plugins for the mobile build.
+// Copies the PC client's plugins into web/src/plugins for the mobile build,
+// and its login helper (saved accounts) into web/src/helpers.
 //   node scripts/sync-plugins.mjs [pc-client-dir]
 // The PC client is D:\Projects\HighLite-Client locally (OpenLite on GitHub
 // in CI). Plugins that don't work on a phone are left out (EXCLUDED).
@@ -19,4 +20,5 @@ cpSync(source, target, {
   recursive: true,
   filter: (path) => !(EXCLUDED.has(basename(path)) && resolve(path, "..") === source)
 });
-console.log(`Synced plugins from ${source}`);
+cpSync(join(pc, "src/renderer/client/helpers/userHelper.js"), resolve(import.meta.dirname, "../web/src/helpers/userHelper.js"));
+console.log(`Synced plugins and login helper from ${pc}`);

@@ -59,3 +59,13 @@ html, body {
     font: 16px sans-serif;
     padding: 10px 16px;
 }
+
+#openlite-skip-cache {
+    position: fixed;
+    left: 50%;
+    top: 65%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    font: 14px sans-serif;
+    padding: 8px 14px;
+}

@@ -9,7 +9,9 @@ import indexCss from "./css/index.css?inline";
 import overridesCss from "./css/overrides.css?inline";
 import tooltipCss from "./css/item-tooltip.css?inline";
 import mobileCss from "./css/mobile.css?inline";
-import { installOsrsCache } from "./osrsCache.js";
+import { ensureOsrsCache, installOsrsCache } from "./osrsCache.js";
+import { installCredentials } from "./credentials.js";
+import { createUserHelper } from "./helpers/userHelper.js";
 import { installTouchControls, installTapActions } from "./touch.js";
 
 // Requests the page can't make itself (other origins without CORS) go
@@ -115,7 +117,9 @@ function addStyles() {
 async function main() {
   addStyles();
   installOsrsCache();
+  installCredentials();
   installTapActions();
+  await ensureOsrsCache(status);
   await loadGamePage();
   const client = await obtainGameClient();
   status("Starting...");
@@ -123,6 +127,7 @@ async function main() {
   script.id = "highspellClientScript";
   script.textContent = client;
   document.body.append(script);
+  createUserHelper();
 
   const highlite = new Highlite();
   const modules = import.meta.glob("./plugins/*.js", { eager: true });

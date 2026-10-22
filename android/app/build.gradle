@@ -10,14 +10,17 @@ android {
         applicationId "dev.openlite.mobile"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "0.1"
+        // Numbered by build.ps1 -Release so each published APK installs
+        // over the last.
+        versionCode((project.findProperty("openliteVersionCode") ?: "1") as int)
+        versionName "0.2"
     }
 
+    // Debug and release builds are both signed with this PC's debug key, so
+    // the published APK installs over one put on by USB and the reverse.
     buildTypes {
         release {
             minifyEnabled false
-            // Signed with the debug key so it installs without a keystore.
             signingConfig signingConfigs.debug
         }
     }

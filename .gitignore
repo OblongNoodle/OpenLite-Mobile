@@ -7,3 +7,4 @@ android/app/src/main/assets/web/
 *.apk
 web/src/plugins/
 web/dist/
+web/src/helpers/userHelper.js

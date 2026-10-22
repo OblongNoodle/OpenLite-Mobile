@@ -1,3 +1,6 @@
+// The game's own test for its phone mode (MobileHelper; see polyfills.js).
+import { PHONE_MODE_QUERY } from "./polyfills.js";
+
 // Touch stand-ins for OpenLite's keyboard controls. The game has its own
 // phone controls; these cover our plugins: "Tag" stands in for holding Alt
 // (Object Markers' Tag/Untag menu entries).
@@ -21,12 +24,10 @@ export function installTouchControls() {
 // screen mask handlers call these first (main.js withTouchHooks), and a
 // true return skips the game's own handling.
 const LONG_PRESS_MS = 450;
-// The game's own test for its phone mode (MobileHelper).
-const PHONE_MODE = "(height < 48rem) and (orientation: landscape), (width < 48rem) and (orientation: portrait)";
 
 export function installTapActions() {
   let press = null;
-  const phoneMode = () => window.matchMedia(PHONE_MODE).matches;
+  const phoneMode = () => window.matchMedia(PHONE_MODE_QUERY).matches;
   // The game may reuse its pointer event objects.
   const snapshot = (pointer) => Object.assign(Object.create(Object.getPrototypeOf(pointer)), pointer);
 

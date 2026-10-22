@@ -8,6 +8,7 @@
         android:icon="@mipmap/ic_launcher"
         android:hardwareAccelerated="true"
         android:largeHeap="true"
+        android:allowBackup="false"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
         <activity
             android:name=".MainActivity"

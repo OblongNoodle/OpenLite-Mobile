@@ -1,6 +1,7 @@
 package dev.openlite.mobile;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -32,6 +33,8 @@ import java.util.Map;
 //   /__openlite/proxy?url=...            GET from *.openspell.dev (no CORS there)
 //   /__openlite/cache/status             whether an OSRS cache is on the phone
 //   /__openlite/cache/archive/<i>/<a>    one decompressed cache archive
+//   /__openlite/cache/download           fetch a cache (first launch; CacheDownloader)
+//   /__openlite/cache/progress           how that is going
 //   /__openlite/version                  the web bundle in use (see Updater)
 //   /__openlite/use-builtin              drop an update that won't start
 //   anything else                        a file of the web bundle
@@ -43,6 +46,7 @@ public class MainActivity extends Activity {
     private WebView webView;
     private JagexCache cache;
     private Updater updater;
+    private CacheDownloader cacheDownloader;
     // The web bundle for this launch (null: the one built into the app).
     // An update downloaded meanwhile waits for the next launch.
     private File webDir;
@@ -53,6 +57,7 @@ public class MainActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         WebView.setWebContentsDebuggingEnabled(true);
         updater = new Updater(this);
+        cacheDownloader = new CacheDownloader(cacheDir());
         webDir = updater.currentDir();
         new Thread(() -> {
             String version = updater.downloadLatest();
@@ -72,7 +77,22 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
+        // Saved logins for the login helper (see Credentials).
+        webView.addJavascriptInterface(new Credentials(this), "OpenLiteCredentials");
         webView.setWebViewClient(new WebViewClient() {
+            // Only OpenSpell is shown here; other links open in the browser.
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String host = request.getUrl().getHost();
+                if (host != null && (host.equals("openspell.dev") || host.endsWith(".openspell.dev"))) return false;
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
+                } catch (Exception e) {
+                    Log.w(TAG, "No app for " + request.getUrl());
+                }
+                return true;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -97,6 +117,15 @@ public class MainActivity extends Activity {
             JagexCache opened = cache();
             return opened != null ? text(200, opened.dir.getPath()) : text(404, "No OSRS cache at " + cacheDir().getPath());
         }
+        if (path.equals("cache/download")) {
+            cacheDownloader.start(() -> {
+                synchronized (this) {
+                    cache = null;
+                }
+            });
+            return text(200, "started");
+        }
+        if (path.equals("cache/progress")) return bytes(200, "application/json", cacheDownloader.progressJson().getBytes(StandardCharsets.UTF_8));
         if (path.startsWith("cache/archive/")) {
             String[] parts = path.substring("cache/archive/".length()).split("/");
             JagexCache opened = cache();

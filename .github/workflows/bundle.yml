@@ -40,7 +40,9 @@ jobs:
           repository: ${{ env.PC_REPO }}
           ref: ${{ env.PC_BRANCH }}
           path: pc
-          sparse-checkout: src/renderer/client/plugins
+          sparse-checkout: |
+            src/renderer/client/plugins
+            src/renderer/client/helpers
 
       # Version: the PC client's and this repo's commits.
       - id: version
