@@ -1,5 +1,5 @@
 # Builds the phone's web bundle from the PC client's plugins (OpenLite,
-# openlite branch) and publishes it on this repo's GitHub Pages site, where
+# mobile branch) and publishes it on this repo's GitHub Pages site, where
 # the app looks for updates (android/.../Updater.java). Runs on pushes here,
 # when started by hand (gh workflow run bundle.yml), and every 15 minutes in
 # case the PC client changed; it skips the build when nothing has.
@@ -23,7 +23,7 @@ concurrency:
 
 env:
   PC_REPO: OblongNoodle/OpenLite
-  PC_BRANCH: openlite
+  PC_BRANCH: mobile
   SITE: https://oblongnoodle.github.io/OpenLite-Mobile
 
 jobs:

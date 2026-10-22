@@ -1,8 +1,10 @@
 # OpenLite Mobile
 
 OpenLite for Android: the OpenSpell game in a full-screen WebView with
-OpenLite's plugins, which come from the PC client
-([OpenLite](https://github.com/OblongNoodle/OpenLite), `openlite` branch).
+OpenLite's plugins, which come from the PC client's `mobile` branch
+([OpenLite](https://github.com/OblongNoodle/OpenLite)): PC changes reach the
+phone only when that branch is moved on purpose (the PC client's heavier
+graphics work stays off the phone).
 
 - `build.ps1 [-Install]` builds the APK (and installs it over USB).
 - The app updates its plugins itself: `.github/workflows/bundle.yml` builds
