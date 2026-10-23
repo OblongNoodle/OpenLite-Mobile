@@ -79,16 +79,20 @@ export function installSessionLog() {
   }, 1000);
 }
 
+// Which web bundle is running (see the app's Updater), shown with the log so
+// the player can tell an update has taken.
+let version = "";
+fetch("/__openlite/version").then((r) => r.text()).then((text) => (version = text)).catch(() => {});
+
 // The last few sessions, under the login form.
 function showOnLoginScreen() {
-  const onLoginScreen = !!document.querySelector("#login-menu-username");
+  const onLoginScreen = !!document.querySelector("#login-menu-username, #login-menu-password");
   let panel = document.getElementById("openlite-session-log");
   if (!onLoginScreen) {
     panel?.remove();
     return;
   }
   const log = read(LOG_KEY, []);
-  if (!log.length) return;
   if (!panel) {
     panel = document.createElement("div");
     panel.id = "openlite-session-log";
@@ -99,6 +103,6 @@ function showOnLoginScreen() {
     const events = entry.events?.length ? ` [${entry.events.slice(-4).join(", ")}]` : "";
     return `${clock(entry.start)}-${clock(entry.end)} (${minutes} min): ${entry.reason}${events}`;
   });
-  const text = "Recent sessions:\n" + lines.join("\n");
+  const text = `OpenLite ${version || "?"}\nRecent sessions:${lines.length ? "\n" + lines.join("\n") : " none yet"}`;
   if (panel.textContent !== text) panel.textContent = text;
 }
