@@ -13,6 +13,7 @@ import { ensureOsrsCache, installOsrsCache } from "./osrsCache.js";
 import { installCredentials } from "./credentials.js";
 import { createUserHelper } from "./helpers/userHelper.js";
 import { installTouchControls, installTapActions } from "./touch.js";
+import { installSessionLog } from "./sessionLog.js";
 
 // Requests the page can't make itself (other origins without CORS) go
 // through the app (MainActivity.proxy).
@@ -115,6 +116,7 @@ function addStyles() {
 }
 
 async function main() {
+  installSessionLog();
   addStyles();
   installOsrsCache();
   installCredentials();
