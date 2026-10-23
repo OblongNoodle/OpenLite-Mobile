@@ -13,7 +13,8 @@ import { ensureOsrsCache, installOsrsCache } from "./osrsCache.js";
 import { installCredentials } from "./credentials.js";
 import { createUserHelper } from "./helpers/userHelper.js";
 import { installTouchControls, installTapActions } from "./touch.js";
-import { installSessionLog } from "./sessionLog.js";
+import { installSessionLog, noteEvent } from "./sessionLog.js";
+import { findSpriteClassNames, installSpriteWatchdog } from "./spriteWatchdog.js";
 
 // Requests the page can't make itself (other origins without CORS) go
 // through the app (MainActivity.proxy).
@@ -55,6 +56,7 @@ async function obtainGameClient() {
   status(`Downloading game client v${version}...`);
   const source = await fetch(proxied(`https://cdn.openspell.dev/js/client/client.${version}.js`)).then((r) => r.text());
   await Reflector.loadHooksFromSource(source);
+  findSpriteClassNames(source);
   return withHooks(withTouchHooks(source));
 }
 
@@ -143,6 +145,7 @@ async function main() {
   await highlite.start();
   installTouchControls();
   rebuildModelsOnReturn();
+  installSpriteWatchdog(noteEvent);
   status("");
   document.dispatchEvent(new Event("DOMContentLoaded", { bubbles: true, cancelable: true }));
 }

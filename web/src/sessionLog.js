@@ -6,6 +6,8 @@
 // ended it), and when the app was hidden meanwhile. A session still open
 // when the page starts again ended with the app closed or restarted (killed
 // for memory, crashed, or reopened for an update).
+import { spriteQueueSummary } from "./spriteWatchdog.js";
+
 const LOG_KEY = "openlite-session-log";
 const OPEN_KEY = "openlite-session-open";
 const KEPT = 12;
@@ -32,6 +34,13 @@ function record(session, reason) {
   const log = read(LOG_KEY, []);
   log.unshift({ ...session, end: session.lastSeen ?? Date.now(), reason });
   write(LOG_KEY, log.slice(0, KEPT));
+}
+
+// Notes from elsewhere in the app (see spriteWatchdog.js), kept with the
+// session in progress.
+let noteHandler = null;
+export function noteEvent(text) {
+  noteHandler?.(text);
 }
 
 export function installSessionLog() {
@@ -76,6 +85,7 @@ export function installSessionLog() {
   for (const [type, label] of [["webglcontextlost", "graphics lost"], ["webglcontextrestored", "graphics restored"]]) {
     document.addEventListener(type, () => session?.events.push(`${label} ${clock(Date.now())}`), true);
   }
+  noteHandler = (text) => session?.events.push(`${text} ${clock(Date.now())}`);
   // Errors, first few per session.
   const noteError = (message) => {
     if (session && session.errors < 3) {
@@ -111,7 +121,7 @@ function characterSummary() {
     const model = document.highlite?.managers?.PluginManager?.plugins
       ?.find((p) => p.instance?.pluginName === "3D Models")?.instance?.records?.get(me)?.model?.root;
     const y = (value) => (typeof value === "number" ? value.toFixed(1) : String(value));
-    return `${entities?.NPCs?.size ?? "?"} npcs, ${entities?.Players?.length ?? "?"} players; me sprite ${sprite ? `${sprite.isEnabled() ? "on" : "off"} y ${y(sprite.position?.y)}` : "none"}, model ${model ? `${model.isEnabled() ? "on" : "off"} y ${y(model.position?.y)}` : "none"}`;
+    return `${entities?.NPCs?.size ?? "?"} npcs, ${entities?.Players?.length ?? "?"} players, ${spriteQueueSummary()}; me sprite ${sprite ? `${sprite.isEnabled() ? "on" : "off"} y ${y(sprite.position?.y)}` : "none"}, model ${model ? `${model.isEnabled() ? "on" : "off"} y ${y(model.position?.y)}` : "none"}`;
   } catch (error) {
     return `? (${error.message})`;
   }
