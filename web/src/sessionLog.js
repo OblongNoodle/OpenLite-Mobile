@@ -66,6 +66,10 @@ export function installSessionLog() {
   document.addEventListener("visibilitychange", () => {
     session?.events.push(`${document.visibilityState} ${clock(Date.now())}`);
   });
+  // The device's own word on its network (Wi-Fi dropping out).
+  for (const state of ["offline", "online"]) {
+    window.addEventListener(state, () => session?.events.push(`${state} ${clock(Date.now())}`));
+  }
 
   setInterval(() => {
     const player = document.highlite?.gameHooks?.EntityManager?.Instance?.MainPlayer;

@@ -3,7 +3,11 @@ package dev.openlite.mobile;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -219,17 +223,54 @@ public class MainActivity extends Activity {
         if (hasFocus) hideSystemBars();
     }
 
+    // Staying connected. A tablet's Wi-Fi power saving stalls connections
+    // now and then, and the game's connection was lost each time (the server
+    // still holding the session: "already logged in"), so Wi-Fi is kept at
+    // full power while playing. When the app is hidden (the notification
+    // shade, another app for a moment) the page keeps running, where pausing
+    // the WebView dropped the connection within seconds; after
+    // BACKGROUND_GRACE_MS hidden the Wi-Fi lock is let go.
+    private static final long BACKGROUND_GRACE_MS = 2 * 60 * 1000;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private WifiManager.WifiLock wifiLock;
+    private final Runnable releaseWifi = () -> {
+        if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+    };
+
+    private void holdWifi() {
+        handler.removeCallbacks(releaseWifi);
+        try {
+            if (wifiLock == null) {
+                WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                int mode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ? WifiManager.WIFI_MODE_FULL_LOW_LATENCY : WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+                wifiLock = wifi.createWifiLock(mode, "OpenLite:game");
+                wifiLock.setReferenceCounted(false);
+            }
+            if (!wifiLock.isHeld()) wifiLock.acquire();
+        } catch (Exception e) {
+            Log.w(TAG, "No Wi-Fi lock: " + e);
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
-        webView.onPause();
         CookieManager.getInstance().flush();
+        handler.postDelayed(releaseWifi, BACKGROUND_GRACE_MS);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         webView.onResume();
+        holdWifi();
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacks(releaseWifi);
+        releaseWifi.run();
+        super.onDestroy();
     }
 
     // Back does nothing: leaving the page would log you out.
