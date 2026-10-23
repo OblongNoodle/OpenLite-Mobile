@@ -70,10 +70,30 @@ export function installSessionLog() {
   for (const state of ["offline", "online"]) {
     window.addEventListener(state, () => session?.events.push(`${state} ${clock(Date.now())}`));
   }
+  // Android may take the GPU away from a backgrounded app; the game's canvas
+  // then loses its drawing context and gets a new one on return. (These
+  // events don't bubble; capturing on the document catches them.)
+  for (const [type, label] of [["webglcontextlost", "graphics lost"], ["webglcontextrestored", "graphics restored"]]) {
+    document.addEventListener(type, () => session?.events.push(`${label} ${clock(Date.now())}`), true);
+  }
+  // Errors, first few per session.
+  const noteError = (message) => {
+    if (session && session.errors < 3) {
+      session.errors++;
+      session.events.push(`error ${clock(Date.now())}: ${String(message).slice(0, 80)}`);
+    }
+  };
+  window.addEventListener("error", (event) => noteError(event.message));
+  window.addEventListener("unhandledrejection", (event) => noteError(event.reason?.message ?? event.reason));
+  // A few seconds after coming back, what the game still has: characters it
+  // knows of, and whether the player's own is drawn and where.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") setTimeout(() => session?.events.push(`back: ${characterSummary()}`), 3000);
+  });
 
   setInterval(() => {
     const player = document.highlite?.gameHooks?.EntityManager?.Instance?.MainPlayer;
-    if (player && !session) session = { start: Date.now(), events: [] };
+    if (player && !session) session = { start: Date.now(), events: [], errors: 0 };
     else if (!player && session) end("left the game (no reason given)");
     if (session) {
       session.lastSeen = Date.now();
@@ -81,6 +101,20 @@ export function installSessionLog() {
     }
     showOnLoginScreen();
   }, 1000);
+}
+
+function characterSummary() {
+  try {
+    const entities = document.highlite?.gameHooks?.EntityManager?.Instance;
+    const me = entities?.MainPlayer;
+    const sprite = me?.Appearance?.BillboardMesh;
+    const model = document.highlite?.managers?.PluginManager?.plugins
+      ?.find((p) => p.instance?.pluginName === "3D Models")?.instance?.records?.get(me)?.model?.root;
+    const y = (value) => (typeof value === "number" ? value.toFixed(1) : String(value));
+    return `${entities?.NPCs?.size ?? "?"} npcs, ${entities?.Players?.length ?? "?"} players; me sprite ${sprite ? `${sprite.isEnabled() ? "on" : "off"} y ${y(sprite.position?.y)}` : "none"}, model ${model ? `${model.isEnabled() ? "on" : "off"} y ${y(model.position?.y)}` : "none"}`;
+  } catch (error) {
+    return `? (${error.message})`;
+  }
 }
 
 // Which web bundle is running (see the app's Updater), shown with the log so
@@ -104,7 +138,7 @@ function showOnLoginScreen() {
   }
   const lines = log.slice(0, SHOWN).map((entry) => {
     const minutes = Math.round((entry.end - entry.start) / 60000);
-    const events = entry.events?.length ? ` [${entry.events.slice(-4).join(", ")}]` : "";
+    const events = entry.events?.length ? ` [${entry.events.slice(-6).join(", ")}]` : "";
     return `${clock(entry.start)}-${clock(entry.end)} (${minutes} min): ${entry.reason}${events}`;
   });
   const text = `OpenLite ${version || "?"}\nRecent sessions:${lines.length ? "\n" + lines.join("\n") : " none yet"}`;

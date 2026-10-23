@@ -142,8 +142,35 @@ async function main() {
   }
   await highlite.start();
   installTouchControls();
+  rebuildModelsOnReturn();
   status("");
   document.dispatchEvent(new Event("DOMContentLoaded", { bubbles: true, cancelable: true }));
+}
+
+// Characters can go missing after the app has been in the background (Android
+// may take the GPU away meanwhile), so 3D Models builds them afresh on the
+// way back. It waits until the session log has noted what was there.
+const REBUILD_AFTER_HIDDEN_MS = 5000;
+const REBUILD_DELAY_MS = 3500;
+
+function rebuildModelsOnReturn() {
+  let hiddenAt = null;
+  const rebuild = () => {
+    const plugin = document.highlite?.managers?.PluginManager?.plugins?.find((p) => p.instance?.pluginName === "3D Models")?.instance;
+    if (!plugin?.settings?.enable?.value) return;
+    try {
+      plugin.stop();
+      plugin.start();
+      console.info("[OpenLite] Rebuilt 3D models");
+    } catch (error) {
+      console.error("[OpenLite] Rebuilding 3D models failed", error);
+    }
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") hiddenAt = Date.now();
+    else if (hiddenAt !== null && Date.now() - hiddenAt > REBUILD_AFTER_HIDDEN_MS) setTimeout(rebuild, REBUILD_DELAY_MS);
+  });
+  document.addEventListener("webglcontextrestored", () => setTimeout(rebuild, REBUILD_DELAY_MS), true);
 }
 
 // An update (see the app's Updater) that won't start can be dropped for the
