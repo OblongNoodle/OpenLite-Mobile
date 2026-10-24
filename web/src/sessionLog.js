@@ -132,7 +132,11 @@ function characterSummary() {
 let version = "";
 fetch("/__openlite/version").then((r) => r.text()).then((text) => (version = text)).catch(() => {});
 
-// The last few sessions, under the login form.
+// Whether the panel shows the sessions or only its one-line tab.
+let expanded = false;
+
+// The version and, when tapped open, the last few sessions, in a corner of
+// the login screen. Closed it is one short line, clear of the login form.
 function showOnLoginScreen() {
   const onLoginScreen = !!document.querySelector("#login-menu-username, #login-menu-password");
   let panel = document.getElementById("openlite-session-log");
@@ -144,13 +148,23 @@ function showOnLoginScreen() {
   if (!panel) {
     panel = document.createElement("div");
     panel.id = "openlite-session-log";
+    panel.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      expanded = !expanded;
+      showOnLoginScreen();
+    });
     document.body.appendChild(panel);
   }
-  const lines = log.slice(0, SHOWN).map((entry) => {
-    const minutes = Math.round((entry.end - entry.start) / 60000);
-    const events = entry.events?.length ? ` [${entry.events.slice(-6).join(", ")}]` : "";
-    return `${clock(entry.start)}-${clock(entry.end)} (${minutes} min): ${entry.reason}${events}`;
-  });
-  const text = `OpenLite ${version || "?"}\nRecent sessions:${lines.length ? "\n" + lines.join("\n") : " none yet"}`;
+  panel.classList.toggle("expanded", expanded);
+  const heading = `OpenLite ${version || "?"} · log ${expanded ? "▾" : "▸"}`;
+  let text = heading;
+  if (expanded) {
+    const lines = log.slice(0, SHOWN).map((entry) => {
+      const minutes = Math.round((entry.end - entry.start) / 60000);
+      const events = entry.events?.length ? ` [${entry.events.slice(-6).join(", ")}]` : "";
+      return `${clock(entry.start)}-${clock(entry.end)} (${minutes} min): ${entry.reason}${events}`;
+    });
+    text += `\nRecent sessions:${lines.length ? "\n" + lines.join("\n") : " none yet"}`;
+  }
   if (panel.textContent !== text) panel.textContent = text;
 }
